@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
@@ -38,6 +39,11 @@ async function requireAuth(req, res, next) {
     return res.status(500).json({ error: 'サーバー内部でエラーが発生しました。' });
   }
 }
+
+// ルートパスにアクセスしたときにindex.htmlを返す設定
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // 1. タイムラインの取得 (最新の投稿順に10件取得)
 app.get('/api/posts', async (req, res) => {
