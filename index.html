@@ -19,10 +19,10 @@
         <label class="block text-sm font-medium">パスワード</label>
         <input type="password" id="auth-password" required class="w-full p-2 border rounded-md" minlength="6">
       </div>
-      <button type="submit" id="auth-submit" class="w-full bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600">ログイン</button>
+      <button type="submit" id="auth-submit" class="w-full bg-blue-500 text-white p-2 rounded-md font-bold hover:bg-blue-600 cursor-pointer">ログイン</button>
     </form>
     <div class="mt-4 text-center">
-      <button id="auth-toggle" class="text-sm text-blue-500 hover:underline">新規登録はこちら</button>
+      <button id="auth-toggle" class="text-sm text-blue-500 hover:underline cursor-pointer">新規登録はこちら</button>
     </div>
   </div>
 
@@ -30,27 +30,26 @@
     <header class="bg-white shadow-sm p-4 sticky top-0 flex justify-between items-center z-10">
       <h1 class="text-xl font-bold text-blue-500 cursor-pointer" onclick="switchPage('home')">SimpleSNS</h1>
       <div class="space-x-4">
-        <button onclick="switchPage('home')" class="hover:text-blue-500 font-medium">🏠 ホーム/検索</button>
-        <button onclick="switchPage('post')" class="hover:text-blue-500 font-medium">📝 投稿</button>
-        <button onclick="switchPage('profile')" class="hover:text-blue-500 font-medium">👤 プロフィール</button>
+        <button onclick="switchPage('home')" class="hover:text-blue-500 font-medium cursor-pointer">🏠 ホーム</button>
+        <button onclick="switchPage('post')" class="hover:text-blue-500 font-medium cursor-pointer">📝 投稿</button>
+        <button onclick="switchPage('profile')" class="hover:text-blue-500 font-medium cursor-pointer">👤 プロフ</button>
       </div>
     </header>
 
     <div id="page-home" class="max-w-xl mx-auto p-4 space-y-4 page-content">
       <div class="bg-white p-3 rounded-lg shadow-sm flex gap-2">
-        <input type="text" id="search-input" placeholder="投稿内容やユーザー名で検索..." class="w-full p-2 border rounded-md">
-        <button onclick="fetchTimeline()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">検索</button>
+        <input type="text" id="search-input" placeholder="投稿を検索..." class="w-full p-2 border rounded-md">
+        <button onclick="fetchTimeline()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 cursor-pointer">検索</button>
       </div>
-      <div id="timeline" class="space-y-3">
-        </div>
+      <div id="timeline" class="space-y-3"></div>
     </div>
 
     <div id="page-post" class="max-w-xl mx-auto p-4 page-content hidden">
       <div class="bg-white p-6 rounded-lg shadow-md">
         <h2 class="text-xl font-bold mb-4">いまどうしてる？</h2>
         <form id="post-form" class="space-y-4">
-          <textarea id="post-content" rows="4" placeholder="ここにメッセージを入力..." required class="w-full p-2 border rounded-md"></textarea>
-          <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md font-bold hover:bg-blue-600 block ml-auto">投稿する</button>
+          <textarea id="post-content" rows="4" placeholder="メッセージを入力..." required class="w-full p-2 border rounded-md"></textarea>
+          <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md font-bold hover:bg-blue-600 block ml-auto cursor-pointer">投稿する</button>
         </form>
       </div>
     </div>
@@ -60,13 +59,13 @@
         <div class="w-24 h-24 bg-gray-300 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">👤</div>
         <h2 id="profile-email" class="text-xl font-bold mb-2">---</h2>
         <p id="profile-id" class="text-gray-500 text-sm mb-6">ID: ------</p>
-        <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-md font-bold hover:bg-red-600">ログアウト</button>
+        <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-md font-bold hover:bg-red-600 cursor-pointer">ログアウト</button>
       </div>
     </div>
   </div>
 
   <script>
-    // 【修正】現在のURL（Renderかローカルか）を自動判別してベースURLを設定
+    // 通信先URLの自動割り出し（ローカル環境ならlocalhost、RenderならRender自身のURLになる）
     const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:3000/api'
       : `${window.location.origin}/api`;
@@ -74,21 +73,13 @@
     let isSignUpMode = false;
     let userSession = null; 
 
-    // ページ切り替え処理
     function switchPage(pageId) {
       document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
       document.getElementById(`page-${pageId}`).classList.remove('hidden');
-      
-      if (pageId === 'home') {
-        document.getElementById('search-input').value = ''; 
-        fetchTimeline();
-      }
-      if (pageId === 'profile') {
-        loadProfile();
-      }
+      if (pageId === 'home') fetchTimeline();
+      if (pageId === 'profile') loadProfile();
     }
 
-    // ログイン ⇆ 新規登録 モード切り替え
     document.getElementById('auth-toggle').addEventListener('click', () => {
       isSignUpMode = !isSignUpMode;
       document.getElementById('auth-title').innerText = isSignUpMode ? '新規登録' : 'ログイン';
@@ -96,13 +87,16 @@
       document.getElementById('auth-toggle').innerText = isSignUpMode ? 'ログインはこちら' : '新規登録はこちら';
     });
 
-    // 認証（サインアップ・サインイン）処理の実行
+    // サインイン・サインアップ処理
     document.getElementById('auth-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
-      
       const endpoint = isSignUpMode ? `${API_BASE}/auth/signup` : `${API_BASE}/auth/login`;
+
+      const submitBtn = document.getElementById('auth-submit');
+      submitBtn.innerText = '通信中...';
+      submitBtn.disabled = true;
 
       try {
         const res = await fetch(endpoint, {
@@ -112,55 +106,51 @@
         });
 
         const resData = await res.json();
-
-        if (!res.ok) {
-          throw new Error(resData.error || '認証に失敗しました。');
-        }
+        if (!res.ok) throw new Error(resData.error || '認証に失敗しました。');
 
         if (isSignUpMode) {
-          alert('登録が完了しました！メール認証が不要な設定（デフォルト）であれば、そのままログインできます。確認メールの設定を有効にしている場合は、メール内のリンクをクリックしてからログインしてください。');
+          alert('アカウント登録が完了しました！そのままログインを行ってください。');
           isSignUpMode = false;
-          document.getElementById('auth-toggle').click(); 
+          document.getElementById('auth-toggle').click();
           return;
         }
 
-        // 【修正】Expressから返ってくるSupabaseの構造（resData.session）を正しくキャッチ
         userSession = resData.session;
+        if (!userSession) throw new Error('セッションの取得に失敗しました。');
 
-        if (!userSession) {
-          throw new Error('セッションの取得に失敗しました。メール認証が完了しているか確認してください。');
-        }
-
-        // 画面の表示切り替え
         document.getElementById('page-auth').classList.add('hidden');
         document.getElementById('app-main').classList.remove('hidden');
         switchPage('home');
 
       } catch (err) {
-        alert(`エラー: ${err.message}`);
+        alert(`エラーが発生しました:\n${err.message}`);
+      } finally {
+        submitBtn.innerText = isSignUpMode ? '登録する' : 'ログイン';
+        submitBtn.disabled = false;
       }
     });
 
-    // タイムラインの取得（検索フィルタ付き）
+    // タイムライン取得
     async function fetchTimeline() {
       const searchWord = document.getElementById('search-input').value.toLowerCase();
       const timelineEl = document.getElementById('timeline');
-      timelineEl.innerHTML = '<p class="text-center text-gray-500">タイムラインを読み込み中...</p>';
+      timelineEl.innerHTML = '<p class="text-center text-gray-500">タイムラインを読み込み中（サーバー起動に最大1分かかる場合があります）...</p>';
 
       try {
         const res = await fetch(`${API_BASE}/posts`);
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'データの取得に失敗しました。');
+        }
         let posts = await res.json();
-
-        if (!res.ok) throw new Error(posts.error || '投稿の取得に失敗しました。');
 
         if (searchWord) {
           posts = posts.filter(post => 
-            post.content.toLowerCase().includes(searchWord) || 
-            post.username.toLowerCase().includes(searchWord)
+            post.content.toLowerCase().includes(searchWord) || post.username.toLowerCase().includes(searchWord)
           );
         }
 
-        if (posts.length === 0) {
+        if (!posts || posts.length === 0) {
           timelineEl.innerHTML = '<p class="text-center text-gray-500 p-4 bg-white rounded-lg">表示できる投稿がありません。</p>';
           return;
         }
@@ -176,11 +166,11 @@
         `).join('');
 
       } catch (err) {
-        timelineEl.innerHTML = `<p class="text-center text-red-500 p-4 bg-white rounded-lg">エラー: ${err.message}</p>`;
+        timelineEl.innerHTML = `<p class="text-center text-red-500 p-4 bg-white rounded-lg">通信エラー: ${err.message}</p>`;
       }
     }
 
-    // 投稿処理の実行
+    // 新規投稿処理
     document.getElementById('post-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const content = document.getElementById('post-content').value;
@@ -190,19 +180,16 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userSession?.access_token}` 
+            'Authorization': `Bearer ${userSession?.access_token}`
           },
           body: JSON.stringify({ content })
         });
 
         const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || '投稿に失敗しました。');
-        }
+        if (!res.ok) throw new Error(data.error || '投稿に失敗しました。');
 
         document.getElementById('post-content').value = '';
-        alert('投稿が完了しました！');
+        alert('投稿しました！');
         switchPage('home');
 
       } catch (err) {
@@ -210,15 +197,13 @@
       }
     });
 
-    // プロフィール情報のマッピング
     function loadProfile() {
-      if (userSession && userSession.user) {
+      if (userSession?.user) {
         document.getElementById('profile-email').innerText = userSession.user.email;
         document.getElementById('profile-id').innerText = `ID: ${userSession.user.id}`;
       }
     }
 
-    // ログアウト処理
     function logout() {
       userSession = null;
       document.getElementById('app-main').classList.add('hidden');
